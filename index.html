@@ -72,6 +72,7 @@
                     <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">R.M. N° 172-2016-VIVIENDA</span>
                 </div>
                 <h1 class="text-lg font-bold text-slate-800 leading-tight">Calculadora de Edificación 2026</h1>
+                <p id="selectedDistrictDisplay" class="text-xs text-blue-600 font-semibold mt-1"><i class="fa-solid fa-location-dot mr-1"></i> Selecciona un distrito en el mapa</p>
             </div>
             <button onclick="resetCalculator()" class="text-xs text-red-500 hover:bg-red-50 p-1 px-2 rounded border border-red-200 transition-colors no-print">
                 <i class="fa-solid fa-rotate-right mr-1"></i> Reiniciar
@@ -80,8 +81,8 @@
         
         <!-- SELECTOR DE REGIÓN -->
         <div class="mt-3">
-            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Región Tarifaria (R.M. 514-2025-EF/15)</label>
-            <select id="regionSelect" onchange="updateRegion()" class="block w-full mt-1 p-2 bg-white border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Región Tarifaria (Automática)</label>
+            <select id="regionSelect" onchange="updateRegion()" class="block w-full mt-1 p-2 bg-white border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors duration-500">
                 <option value="lima">Lima Metropolitana y Callao</option>
                 <option value="costa">Costa (Excl. Lima/Callao)</option>
                 <option value="sierra">Sierra</option>
@@ -489,34 +490,6 @@
         maxZoom: 20
     }).addTo(map);
 
-    // DUMMY REGIONS (Solo para interactividad, coordenadas aproximadas)
-    const regionsGeoJSON = {
-        "type": "FeatureCollection",
-        "features": [
-            { "type": "Feature", "properties": { "id": "lima", "name": "Lima/Callao", "color": "#2563eb" }, "geometry": { "type": "Polygon", "coordinates": [[[-77.2, -11.5], [-76.5, -11.5], [-76.5, -12.5], [-77.2, -12.5], [-77.2, -11.5]]] } },
-            { "type": "Feature", "properties": { "id": "costa", "name": "Costa", "color": "#f59e0b" }, "geometry": { "type": "Polygon", "coordinates": [[[-81, -3], [-79, -3], [-75, -14], [-71, -18], [-74, -18], [-81, -6], [-81, -3]]] } }, // Aproximación
-            { "type": "Feature", "properties": { "id": "sierra", "name": "Sierra", "color": "#78350f" }, "geometry": { "type": "Polygon", "coordinates": [[[-79, -5], [-76, -5], [-69, -16], [-70, -18], [-74, -14], [-79, -5]]] } },
-            { "type": "Feature", "properties": { "id": "selva", "name": "Selva", "color": "#16a34a" }, "geometry": { "type": "Polygon", "coordinates": [[[-76, -0], [-70, -0], [-68, -10], [-75, -12], [-78, -5], [-76, -0]]] } }
-        ]
-    };
-
-    L.geoJSON(regionsGeoJSON, {
-        style: function(feature) {
-            return { color: feature.properties.color, weight: 2, fillOpacity: 0.2 };
-        },
-        onEachFeature: function(feature, layer) {
-            layer.bindTooltip(feature.properties.name, {permanent: false, direction: 'center'});
-            layer.on('click', function() {
-                document.getElementById('regionSelect').value = feature.properties.id;
-                updateRegion();
-                // Animación visual
-                layer.setStyle({ fillOpacity: 0.6 });
-                setTimeout(() => { layer.setStyle({ fillOpacity: 0.2 }); }, 500);
-            });
-        }
-    }).addTo(map);
-
-
     // --- 3. LÓGICA CALCULADORA ---
     let currentObras = [];
 
@@ -712,6 +685,151 @@
             uiContainer.classList.add('pointer-events-none');
         }
     });
+
+    // --- 4. MAPA: ESTILOS Y SELECCIÓN ---
+    let selectedLayer = null;
+
+    function style(feature) {
+      return {
+        color: "#3b82f6",
+        weight: 1, 
+        opacity: 1,
+        fillColor: "#60a5fa",
+        fillOpacity: 0.1
+      };
+    }
+
+    function highlightStyle() {
+        return {
+            weight: 2, 
+            color: '#0047FF', 
+            fillColor: '#0047FF', 
+            fillOpacity: 0.8      
+        };
+    }
+
+    function resetHighlight(e) {
+      if (e.target !== selectedLayer) {
+        geojson.resetStyle(e.target);
+      }
+    }
+
+    function highlightFeature(e) {
+      const layer = e.target;
+      if (layer !== selectedLayer) {
+          layer.setStyle(highlightStyle());
+          if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+            layer.bringToFront();
+          }
+      }
+    }
+
+    // --- DETECCIÓN DE REGIÓN ---
+    function detectRegion(ubigeo) {
+        // Lógica simplificada basada en los dos primeros dígitos del Ubigeo (Departamento)
+        if (!ubigeo) return 'costa'; // Default fallback
+        const dep = ubigeo.substring(0, 2);
+        
+        // MAPEO (Aproximado para Demo)
+        // Lima (15) y Callao (07)
+        if (dep === '15' || dep === '07') return 'lima';
+        
+        // Selva (Loreto 16, Madre de Dios 17, Ucayali 25, Amazonas 01, San Martin 22)
+        if (['16', '17', '25', '01', '22'].includes(dep)) return 'selva';
+        
+        // Sierra (Cusco 08, Puno 21, Apurimac 03, Ayacucho 05, Huancavelica 09, Huanuco 10, Junin 12, Pasco 19, Cajamarca 06)
+        if (['08', '21', '03', '05', '09', '10', '12', '19', '06'].includes(dep)) return 'sierra';
+        
+        // Costa (Tumbes 24, Piura 20, Lambayeque 14, La Libertad 13, Ancash 02, Ica 11, Arequipa 04, Moquegua 18, Tacna 23)
+        // Nota: Muchos deptos tienen sierra y costa, aquí simplificamos por capital/predominancia
+        return 'costa';
+    }
+
+    function selectFeature(layer) {
+        if (selectedLayer && selectedLayer !== layer) {
+            geojson.resetStyle(selectedLayer);
+        }
+        
+        selectedLayer = layer;
+        layer.setStyle(highlightStyle());
+        layer.bringToFront();
+        
+        map.flyToBounds(layer.getBounds(), { padding: [50, 50], maxZoom: 13, duration: 1.2 });
+        
+        // Lógica de actualización de calculadora
+        const props = layer.feature.properties;
+        const distName = props.distrito || props.NOMBDIST || "Distrito Seleccionado";
+        const ubigeo = props.ubigeo || props.UBIGEO || "";
+        
+        // Detectar Región
+        const detectedRegion = detectRegion(ubigeo);
+        
+        // Actualizar UI
+        document.getElementById('regionSelect').value = detectedRegion;
+        document.getElementById('selectedDistrictDisplay').innerHTML = `<i class="fa-solid fa-location-dot mr-1"></i> ${distName} (Región: ${detectedRegion.toUpperCase()})`;
+        
+        // Trigger update
+        updateRegion();
+        
+        // Abrir panel si está cerrado (opcional, en móviles)
+        if(!isOpen && window.innerWidth < 768) {
+             toggleBtn.click();
+        }
+    }
+
+    function onEachFeature(feature, layer) {
+      const props = feature.properties || {};
+      const distName = props.distrito || props.NOMBDIST || "Distrito";
+      layer.bindTooltip(distName, {permanent: false, direction: "center"});
+      
+      layer.on({
+        mouseover: highlightFeature,
+        mouseout: resetHighlight,
+        click: (e) => {
+            L.DomEvent.stopPropagation(e);
+            selectFeature(layer);
+        }
+      });
+    }
+
+    let geojson;
+    
+    // Carga de Datos
+    fetch("distritos_mef_2026_con_zip.geojson")
+      .then(r => {
+          if (!r.ok) throw new Error("No se encontró archivo local");
+          return r.json();
+      })
+      .then(data => {
+        geojson = L.geoJSON(data, { style, onEachFeature }).addTo(map);
+        map.fitBounds(geojson.getBounds());
+      })
+      .catch(err => {
+        console.warn("Modo Demo Activado: Cargando datos simulados expandidos");
+        const mockData = {
+            "type": "FeatureCollection",
+            "features": [
+                // LIMA
+                { "type": "Feature", "properties": { "distrito": "LIMA", "ubigeo": "150101" }, "geometry": { "type": "Polygon", "coordinates": [[[-77.045, -12.045], [-77.025, -12.045], [-77.025, -12.065], [-77.045, -12.065], [-77.045, -12.045]]] } },
+                { "type": "Feature", "properties": { "distrito": "MIRAFLORES", "ubigeo": "150122" }, "geometry": { "type": "Polygon", "coordinates": [[[-77.020, -12.110], [-77.045, -12.110], [-77.045, -12.135], [-77.020, -12.135], [-77.020, -12.110]]] } },
+                // COSTA (Ej. Trujillo - La Libertad 13)
+                { "type": "Feature", "properties": { "distrito": "TRUJILLO", "ubigeo": "130101" }, "geometry": { "type": "Polygon", "coordinates": [[[-79.05, -8.10], [-78.95, -8.10], [-78.95, -8.15], [-79.05, -8.15], [-79.05, -8.10]]] } },
+                // SIERRA (Ej. Cusco - 08)
+                { "type": "Feature", "properties": { "distrito": "CUSCO", "ubigeo": "080101" }, "geometry": { "type": "Polygon", "coordinates": [[[-72.00, -13.50], [-71.90, -13.50], [-71.90, -13.55], [-72.00, -13.55], [-72.00, -13.50]]] } },
+                // SELVA (Ej. Iquitos - Loreto 16)
+                { "type": "Feature", "properties": { "distrito": "IQUITOS", "ubigeo": "160101" }, "geometry": { "type": "Polygon", "coordinates": [[[-73.25, -3.70], [-73.15, -3.70], [-73.15, -3.80], [-73.25, -3.80], [-73.25, -3.70]]] } }
+            ]
+        };
+        geojson = L.geoJSON(mockData, { style, onEachFeature }).addTo(map);
+        
+        // Centrar en Perú general si es demo
+        map.setView([-9.19, -75.0152], 5);
+
+        const warning = document.createElement('div');
+        warning.className = "absolute bottom-5 left-1/2 transform -translate-x-1/2 bg-amber-100 text-amber-800 border border-amber-200 px-4 py-2 rounded-lg text-xs font-bold shadow-lg z-[2000] flex items-center gap-2";
+        warning.innerHTML = "<i class='fa-solid fa-triangle-exclamation'></i> Modo Demo: Datos simulados (Lima, Trujillo, Cusco, Iquitos). Carga tu GeoJSON completo para ver todo Perú.";
+        document.body.appendChild(warning);
+      });
 
     // Iniciar
     init();
