@@ -6,7 +6,7 @@
   
   <!-- METADATOS PARA COMPORTAMIENTO NATIVO (APP) -->
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#1e293b" />
+  <meta name="theme-color" content="#000000" />
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="mobile-web-app-capable" content="yes">
@@ -24,7 +24,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
-    /* RESET Y ESTILOS BASE PARA MÓVIL */
     body { 
         font-family: 'Inter', sans-serif; 
         overscroll-behavior-y: none;
@@ -40,40 +39,34 @@
     
     #map { z-index: 0; height: 100vh; width: 100vw; position: fixed; top: 0; left: 0; }
     
-    .panel-hidden { transform: translateY(100%); opacity: 0; pointer-events: none; }
-    .panel-visible { transform: translateY(0); opacity: 1; pointer-events: auto; }
+    /* Animación del Panel (Slide desde la izquierda en móvil y desktop) */
+    .panel-hidden { transform: translateX(-100%); opacity: 0; pointer-events: none; }
+    .panel-visible { transform: translateX(0); opacity: 1; pointer-events: auto; }
     
-    @media (min-width: 768px) {
-        .panel-hidden { transform: translateX(-100%); }
-        .panel-visible { transform: translateX(0); }
-    }
+    /* Asegurar que el footer no sea tapado por la barra de inicio en iOS */
+    .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
   </style>
 </head>
 
 <body class="bg-gray-100 overflow-hidden relative h-screen w-screen">
 
-  <!-- PESTAÑA LATERAL (MÓVIL) - IZQUIERDA -->
-  <button id="mobileToggleBtn" class="md:hidden absolute left-0 top-1/2 transform -translate-y-1/2 z-[2000] bg-white text-blue-600 w-6 h-16 rounded-r-lg shadow-lg border-y border-r border-gray-200 flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-all duration-200 group">
-    <i id="mobileToggleIcon" class="fa-solid fa-chevron-right text-xs group-active:scale-90 transition-transform"></i>
-  </button>
-
-  <!-- PESTAÑA LATERAL (DESKTOP) -->
-  <button id="toggleSideBtn" class="hidden md:flex absolute left-0 top-1/2 transform -translate-y-1/2 z-[2000] bg-white text-blue-700 w-8 h-20 rounded-r-xl shadow-xl border-y border-r border-gray-300 items-center justify-center hover:bg-blue-50 transition-all duration-300">
-    <i id="toggleIcon" class="fa-solid fa-chevron-left text-lg"></i>
+  <!-- PESTAÑA LATERAL DE APERTURA (Visible cuando el panel está cerrado) -->
+  <button id="toggleBtn" class="absolute left-0 top-1/2 transform -translate-y-1/2 z-[2000] bg-white text-blue-600 w-8 h-16 rounded-r-xl shadow-lg border-y border-r border-gray-200 flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-all duration-200 hidden group">
+    <i class="fa-solid fa-chevron-right text-lg group-active:scale-90"></i>
   </button>
 
   <!-- CONTENEDOR UI -->
-  <div id="uiContainer" class="absolute inset-0 z-[1000] pointer-events-none flex flex-col justify-end md:justify-start items-start md:items-stretch transition-all duration-300 w-full h-full md:p-4 md:w-[500px]">
+  <div id="uiContainer" class="absolute inset-0 z-[1000] pointer-events-none flex flex-col justify-start items-start md:p-4 w-full h-full">
     
     <!-- PANEL PRINCIPAL -->
-    <!-- h-[100dvh] para altura total dinámica en móviles -->
-    <div id="mainPanel" class="panel-visible pointer-events-auto bg-white/95 backdrop-blur-md shadow-2xl flex flex-col w-full h-[100dvh] border-r border-white/20 overflow-hidden transition-all duration-300 ease-in-out md:rounded-2xl md:h-[98%] md:w-full md:max-w-none">
+    <!-- h-[100dvh] garantiza altura total en móviles. Flex-col para header/body/footer -->
+    <div id="mainPanel" class="panel-visible pointer-events-auto bg-white/95 backdrop-blur-md shadow-2xl flex flex-col w-full md:w-[450px] h-[100dvh] md:h-[98%] md:rounded-2xl border-r border-white/20 overflow-hidden transition-all duration-300 ease-in-out relative">
       
-      <!-- HEADER (FIJO ARRIBA) -->
-      <div class="bg-slate-50/80 p-4 border-b border-gray-200 shrink-0 relative">
-        <div class="flex justify-between items-start mt-2">
-            <div class="w-full">
-                <!-- TEXTO LEGAL CORREGIDO (Sin paréntesis) -->
+      <!-- 1. HEADER (FIJO ARRIBA) -->
+      <div class="bg-slate-50/90 p-4 border-b border-gray-200 flex-none z-10 relative">
+        <div class="flex justify-between items-start">
+            <div class="w-full pr-8">
+                <!-- TEXTO LEGAL -->
                 <div class="flex flex-col gap-0.5 mb-2">
                     <span class="text-[9px] font-bold text-blue-600 uppercase tracking-wider leading-tight">R.M. N° 172-2016-VIVIENDA</span>
                     <span class="text-[9px] font-bold text-blue-600 uppercase tracking-wider leading-tight">R.M. N° 277-2025-VIVIENDA</span>
@@ -82,18 +75,13 @@
                 <h1 class="text-2xl font-extrabold text-slate-800 leading-none mb-0.5">Calculadora</h1>
                 <h2 class="text-lg font-bold text-slate-600 leading-tight">Valor de la edificación</h2>
                 
-                <p id="selectedDistrictDisplay" class="text-xs text-blue-600 font-semibold mt-2 truncate max-w-[250px]"><i class="fa-solid fa-location-dot mr-1"></i> Selecciona zona en mapa</p>
+                <p id="selectedDistrictDisplay" class="text-xs text-blue-600 font-semibold mt-2 truncate"><i class="fa-solid fa-location-dot mr-1"></i> Selecciona zona en mapa</p>
             </div>
             
-            <div class="flex gap-2">
-                 <button onclick="resetCalculator()" class="text-xs text-red-500 bg-red-50 p-2 rounded-lg border border-red-100 active:bg-red-100 transition-colors" title="Reiniciar">
-                    <i class="fa-solid fa-rotate-right"></i>
-                </button>
-                <!-- Botón de cierre para móvil -->
-                <button onclick="togglePanel()" class="md:hidden text-xs text-slate-500 bg-slate-100 p-2 rounded-lg border border-slate-200 active:bg-slate-200 transition-colors">
-                    <i class="fa-solid fa-chevron-left"></i>
-                </button>
-            </div>
+            <!-- Botón Cerrar (Dentro del panel) -->
+            <button onclick="closePanel()" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600 p-2 rounded-lg hover:bg-slate-100 transition-colors">
+                <i class="fa-solid fa-chevron-left text-xl"></i>
+            </button>
         </div>
         
         <div class="mt-3">
@@ -107,16 +95,17 @@
         </div>
       </div>
 
-      <!-- BODY SCROLLABLE (DATOS + RESULTADOS) -->
-      <div class="flex-1 overflow-y-auto custom-scroll p-4 space-y-6">
+      <!-- 2. BODY SCROLLABLE (CONTENIDO) -->
+      <!-- flex-1 y overflow-y-auto aseguran que SOLO esta parte haga scroll -->
+      <div class="flex-1 overflow-y-auto custom-scroll p-4 space-y-6 bg-white/50">
 
-        <!-- 1. DATOS GENERALES -->
-        <section class="space-y-3 bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-            <h3 class="text-sm font-bold text-slate-700 border-b pb-1">1. Datos Básicos</h3>
-            <div class="flex flex-col gap-3">
+        <!-- Datos Generales -->
+        <section class="space-y-3 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+            <h3 class="text-sm font-bold text-slate-700 border-b pb-2 mb-2">1. Datos Básicos</h3>
+            <div class="flex flex-col gap-4">
                 <div>
                     <label class="text-xs text-slate-500 font-semibold mb-1 block">Material Predominante</label>
-                    <select id="materialSelect" class="w-full p-2 bg-slate-50 border rounded-lg text-sm h-10">
+                    <select id="materialSelect" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm h-11 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
                         <option value="concreto">Concreto</option>
                         <option value="ladrillo">Ladrillo</option>
                         <option value="adobe">Adobe/Quincha</option>
@@ -124,145 +113,131 @@
                 </div>
                 <div>
                     <label class="text-xs text-slate-500 font-semibold mb-1 block">Estado de Conservación</label>
-                    <select id="estadoSelect" class="w-full p-2 bg-slate-50 border rounded-lg text-sm h-10">
+                    <select id="estadoSelect" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm h-11 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
                         <option value="muy_bueno">Muy Bueno</option>
                         <option value="bueno">Bueno</option>
                         <option value="regular">Regular</option>
                         <option value="malo">Malo</option>
                     </select>
                 </div>
-                <div>
-                    <label class="text-xs text-slate-500 font-semibold mb-1 block">Antigüedad (Años)</label>
-                    <input type="number" id="antiguedadInput" value="0" min="0" class="w-full p-2 bg-slate-50 border rounded-lg text-sm text-right h-10">
-                </div>
-                <div>
-                    <label class="text-xs text-slate-500 font-bold mb-1 block">Área Techada Total (m²)</label>
-                    <input type="number" id="areaInput" value="100" min="1" class="w-full p-2 bg-blue-50 border border-blue-200 rounded-lg text-sm font-bold text-right text-blue-800 h-10">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs text-slate-500 font-semibold mb-1 block">Antigüedad (Años)</label>
+                        <input type="number" id="antiguedadInput" value="0" min="0" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-center h-11 focus:border-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-500 font-bold mb-1 block text-blue-600">Área Techada (m²)</label>
+                        <input type="number" id="areaInput" value="100" min="1" class="w-full p-2.5 bg-blue-50 border border-blue-200 rounded-lg text-sm font-bold text-center text-blue-800 h-11 focus:border-blue-500 outline-none">
+                    </div>
                 </div>
             </div>
             
-            <div class="bg-yellow-50 p-2 rounded-lg border border-yellow-200 flex justify-between items-center mt-2">
-                <span class="text-xs text-yellow-800"><i class="fa-solid fa-arrow-trend-down mr-1"></i> Depreciación</span>
+            <div class="bg-yellow-50 p-2.5 rounded-lg border border-yellow-200 flex justify-between items-center mt-2">
+                <span class="text-xs text-yellow-800 font-medium"><i class="fa-solid fa-arrow-trend-down mr-1"></i> Depreciación Estimada</span>
                 <span id="deprecDisplay" class="text-sm font-bold text-yellow-900">0%</span>
             </div>
         </section>
 
-        <!-- 2. CATEGORÍAS -->
-        <section class="space-y-3 bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-            <div class="flex justify-between items-end border-b pb-1">
-                <h3 class="text-sm font-bold text-slate-700">2. Componentes (S/m²)</h3>
-            </div>
-            <div id="categoriesContainer" class="space-y-3 text-sm">
-                <!-- Dinámico -->
+        <!-- Categorías -->
+        <section class="space-y-3 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+            <h3 class="text-sm font-bold text-slate-700 border-b pb-2 mb-2">2. Componentes (S/m²)</h3>
+            <div id="categoriesContainer" class="space-y-4 text-sm">
+                <!-- Se llena con JS -->
             </div>
         </section>
 
-        <!-- 3. OBRAS COMPLEMENTARIAS -->
-        <section class="space-y-3 bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-            <h3 class="text-sm font-bold text-slate-700 border-b pb-1">3. Valores unitarios a costo directo</h3>
-            <div class="flex flex-col gap-2">
-                <select id="obrasSelect" class="w-full p-2 bg-slate-50 border rounded-lg text-xs h-10">
-                    <!-- Dinámico -->
+        <!-- Obras Complementarias -->
+        <section class="space-y-3 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+            <h3 class="text-sm font-bold text-slate-700 border-b pb-2 mb-2">3. Valores unitarios a costo directo</h3>
+            <div class="flex flex-col gap-3">
+                <select id="obrasSelect" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs h-11 truncate focus:border-blue-500 outline-none">
+                    <!-- JS -->
                 </select>
                 <div class="flex gap-2">
-                    <input type="number" id="obraQty" placeholder="Cant." class="w-20 p-2 border rounded-lg text-xs text-center h-10">
-                    <button onclick="addObra()" class="flex-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 h-10 font-bold text-sm active:scale-95 transition-transform">
-                        <i class="fa-solid fa-plus mr-1"></i> Agregar
+                    <input type="number" id="obraQty" placeholder="Cant." class="w-24 p-2.5 border border-slate-200 rounded-lg text-xs text-center h-11 focus:border-blue-500 outline-none">
+                    <button onclick="addObra()" class="flex-1 bg-slate-800 text-white rounded-lg hover:bg-slate-900 h-11 font-bold text-sm active:scale-95 transition-transform flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Agregar
                     </button>
                 </div>
             </div>
-            <div id="obrasList" class="space-y-2 max-h-48 overflow-y-auto custom-scroll border border-slate-100 rounded-lg bg-gray-50 p-1 min-h-[50px]">
-                <div class="text-center py-4 text-xs text-slate-400 italic" id="emptyObrasMsg">Sin obras adicionales</div>
+            <div id="obrasList" class="mt-2 space-y-2 max-h-48 overflow-y-auto custom-scroll border border-slate-100 rounded-lg bg-gray-50 p-1 min-h-[40px]">
+                <div class="text-center py-3 text-xs text-slate-400 italic" id="emptyObrasMsg">Sin obras adicionales</div>
             </div>
         </section>
 
-        <!-- BOTÓN CALCULAR (VERDE) -->
-        <button onclick="calculate()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg transform active:scale-95 transition-all text-lg flex items-center justify-center gap-2 mb-4 border border-green-500">
-            <i class="fa-solid fa-calculator"></i> CALCULAR VALOR EDIFICACIÓN
+        <!-- BOTÓN CALCULAR -->
+        <button onclick="calculate()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg transform active:scale-95 transition-all text-lg flex items-center justify-center gap-2 border border-green-500">
+            <i class="fa-solid fa-calculator"></i> CALCULAR AHORA
         </button>
 
-        <!-- RESULTADOS (MOVIDOS DENTRO DEL SCROLL PARA EVITAR ERRORES) -->
-        <div class="bg-slate-800 text-white p-4 rounded-xl shadow-lg space-y-4 mb-4">
-             <!-- SUBTOTALES -->
-            <div class="space-y-1">
-                <div class="flex justify-between items-center text-[11px] text-slate-400">
-                    <span>1. Subtotal Valor unitario oficial:</span>
-                    <span id="subtotalEdif" class="font-mono text-slate-200">S/. 0.00</span>
+        <!-- RESULTADOS -->
+        <div id="resultsSection" class="bg-slate-800 text-white p-5 rounded-xl shadow-lg space-y-5">
+             <!-- Subtotales -->
+            <div class="space-y-2 text-xs text-slate-300">
+                <div class="flex justify-between items-center border-b border-slate-700 pb-1">
+                    <span>1. Subtotal Valor Oficial:</span>
+                    <span id="subtotalEdif" class="font-mono text-white">S/. 0.00</span>
                 </div>
-                <div class="flex justify-between items-center text-[11px] text-slate-400">
-                    <span>2. Subtotal Obras costo directo:</span>
-                    <span id="subtotalObras" class="font-mono text-slate-200">S/. 0.00</span>
+                <div class="flex justify-between items-center border-b border-slate-700 pb-1">
+                    <span>2. Subtotal Obras Costo Directo:</span>
+                    <span id="subtotalObras" class="font-mono text-white">S/. 0.00</span>
                 </div>
             </div>
             
-            <div class="border-t border-slate-600"></div>
-            
-            <!-- TOTAL EDIFICACIÓN -->
-            <div class="flex justify-between items-end">
-                <div>
-                    <p class="text-[10px] uppercase tracking-widest text-slate-300 font-bold">Valor de la Edificación</p>
-                    <p id="totalFinal" class="text-2xl font-bold leading-none text-green-400">S/. 0.00</p>
+            <!-- Total Edificación -->
+            <div>
+                <p class="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1">Valor Total Edificación</p>
+                <div class="flex justify-between items-end">
+                    <p id="totalFinal" class="text-3xl font-bold leading-none text-green-400">S/. 0.00</p>
+                    <div class="bg-slate-700 px-2 py-1 rounded text-[10px] text-slate-300">
+                        Unitario: <span id="valorUnitarioTotal" class="font-bold text-white">0.00</span> S/m²
+                    </div>
                 </div>
             </div>
 
-            <!-- VALOR UNITARIO -->
-            <div class="flex justify-between items-center bg-slate-700/50 p-2 rounded border border-slate-600">
-                <span class="text-[10px] uppercase tracking-widest text-slate-300">Valor Unitario (S/m²)</span>
-                <span id="valorUnitarioTotal" class="font-bold text-slate-200 text-sm">0.00</span>
-            </div>
-
-            <!-- SECCIÓN CÁLCULO PREDIO -->
-            <div class="bg-slate-700/80 p-3 rounded-lg border border-slate-600">
-                <h4 class="text-sm font-bold text-orange-400 mb-2">¿Quieres obtener el valor del predio?</h4>
-                <p class="text-[10px] text-slate-400 mb-2 font-mono">VPredio = VTerreno + VEdificación</p>
+            <!-- Cálculo Predio -->
+            <div class="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
+                <h4 class="text-sm font-bold text-orange-400 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-house-chimney"></i> Valor del Predio Total
+                </h4>
                 
-                <label class="text-[10px] text-slate-300 block mb-2 leading-tight">
-                    Si ya tienes el valor del terreno, ingrésalo abajo. Si no, consulta el valor arancelario en el icono del mapa inferior.
-                </label>
+                <p class="text-[10px] text-slate-400 mb-3 leading-relaxed">
+                    Si conoces el valor del terreno, ingrésalo para obtener el total. Si no, consúltalo en el mapa arancelario abajo.
+                </p>
                 
-                <!-- FÓRMULA VISUAL -->
-                <div class="flex items-end gap-2 mb-2 text-xs">
-                    <div class="flex-1">
-                        <label class="text-[9px] text-slate-400 block mb-1">V. Terreno (S/.)</label>
-                        <input type="number" id="valorTerrenoInput" placeholder="0.00" class="w-full p-2 rounded bg-white text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-orange-500 text-right" onkeyup="calculatePredio()">
-                    </div>
-                    <div class="text-slate-400 font-bold pb-2">+</div>
-                    <div class="flex-1">
-                        <label class="text-[9px] text-slate-400 block mb-1">V. Edificación</label>
-                        <div id="displayEdificacionAuto" class="w-full p-2 rounded bg-slate-600 text-slate-300 font-bold text-right border border-slate-500 truncate">
-                            0.00
-                        </div>
-                    </div>
+                <!-- Input Terreno -->
+                <div class="relative mb-3">
+                    <label class="absolute -top-2 left-2 bg-slate-800 px-1 text-[9px] text-slate-400">Valor Terreno (S/.)</label>
+                    <input type="number" id="valorTerrenoInput" placeholder="0.00" class="w-full p-3 rounded bg-slate-900 border border-slate-600 text-white font-bold focus:outline-none focus:border-orange-500 text-right" onkeyup="calculatePredio()">
                 </div>
 
-                <!-- RESULTADO PREDIO -->
-                <div class="flex justify-between items-center mt-3 bg-orange-500/20 p-2 rounded border border-orange-500/50">
-                    <span class="text-xs font-bold text-orange-200">V. PREDIO TOTAL:</span>
-                    <span id="valorPredioTotal" class="text-lg font-bold text-white">S/. 0.00</span>
+                <!-- Resultado Final -->
+                <div class="flex justify-between items-center bg-orange-500/10 p-3 rounded border border-orange-500/30">
+                    <span class="text-xs font-bold text-orange-200">TOTAL PREDIO:</span>
+                    <span id="valorPredioTotal" class="text-xl font-bold text-white">S/. 0.00</span>
                 </div>
             </div>
         </div>
 
       </div>
 
-      <!-- FOOTER FIJO (NEGRO) -->
-      <!-- shrink-0 evita que se encoja. p-4 y pb-safe aseguran visibilidad -->
-      <div class="bg-black text-white shrink-0 p-4 pb-8 md:pb-4 border-t border-gray-800 z-50 flex flex-col items-center justify-center gap-3 w-full">
-          <p class="text-[10px] font-bold text-gray-400 tracking-wide">Elaborado por Lab Urban Risk</p>
+      <!-- 3. FOOTER FIJO (NEGRO) -->
+      <!-- Flex-none evita que se encoja. pb-safe para iPhone X+ -->
+      <div class="flex-none bg-black text-white p-4 pb-8 md:pb-4 border-t border-gray-800 z-50 flex flex-col items-center justify-center gap-3 w-full shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
+          <p class="text-[10px] font-bold text-gray-500 tracking-wide">Elaborado por Lab Urban Risk</p>
           
           <div class="flex items-center gap-6">
-               <!-- Icono Mapa Arancelario (Naranja) -->
-               <a href="https://musucancha-rgb.github.io/PERU.Valor_arancelario_terrenos/" target="_blank" class="text-orange-500 hover:text-orange-400 transition-transform transform hover:scale-110" title="Ver Mapa Valores Arancelarios">
+               <!-- Icono Mapa -->
+               <a href="https://musucancha-rgb.github.io/PERU.Valor_arancelario_terrenos/" target="_blank" class="text-orange-500 hover:text-orange-400 transition-transform transform hover:scale-110 active:scale-95" title="Ver Mapa Valores Arancelarios">
                     <i class="fa-solid fa-map-location-dot text-2xl"></i>
                 </a>
                
-                <!-- Separador -->
-                <div class="w-px h-6 bg-gray-700"></div>
+                <div class="w-px h-6 bg-gray-800"></div>
 
-               <!-- Redes Sociales -->
-                <a href="https://youtube.com/@laburbanrisk" target="_blank" class="text-red-500 hover:text-red-400 transition-transform transform hover:scale-110"><i class="fa-brands fa-youtube text-2xl"></i></a>
-                <a href="https://www.facebook.com/share/1Db3ZgmTE4/?mibextid=wwXIfr" target="_blank" class="text-blue-600 hover:text-blue-500 transition-transform transform hover:scale-110"><i class="fa-brands fa-facebook text-2xl"></i></a>
-                <a href="https://www.instagram.com/laburbanrisk?igsh=MWNzam53enpzZng4Ng%3D%3D&utm_source=qr" target="_blank" class="text-pink-500 hover:text-pink-400 transition-transform transform hover:scale-110"><i class="fa-brands fa-instagram text-2xl"></i></a>
+               <!-- Redes -->
+                <a href="https://youtube.com/@laburbanrisk" target="_blank" class="text-[#FF0000] hover:opacity-80 transition-transform transform hover:scale-110"><i class="fa-brands fa-youtube text-2xl"></i></a>
+                <a href="https://www.facebook.com/share/1Db3ZgmTE4/?mibextid=wwXIfr" target="_blank" class="text-[#1877F2] hover:opacity-80 transition-transform transform hover:scale-110"><i class="fa-brands fa-facebook text-2xl"></i></a>
+                <a href="https://www.instagram.com/laburbanrisk?igsh=MWNzam53enpzZng4Ng%3D%3D&utm_source=qr" target="_blank" class="text-[#E4405F] hover:opacity-80 transition-transform transform hover:scale-110"><i class="fa-brands fa-instagram text-2xl"></i></a>
                 <a href="https://www.tiktok.com/@laburbanrisk?_r=1&_t=ZN-92idJVeblZe" target="_blank" class="text-white hover:text-gray-300 transition-transform transform hover:scale-110"><i class="fa-brands fa-tiktok text-2xl"></i></a>
           </div>
       </div>
@@ -277,7 +252,33 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
-    // --- 0. ESTADO ---
+    // --- LÓGICA DE UI Y ESTADO ---
+    const toggleBtn = document.getElementById('toggleBtn');
+    const mainPanel = document.getElementById('mainPanel');
+    let isOpen = true;
+
+    function closePanel() {
+        mainPanel.classList.remove('panel-visible');
+        mainPanel.classList.add('panel-hidden');
+        toggleBtn.classList.remove('hidden');
+        isOpen = false;
+    }
+
+    function openPanel() {
+        mainPanel.classList.remove('panel-hidden');
+        mainPanel.classList.add('panel-visible');
+        toggleBtn.classList.add('hidden');
+        isOpen = true;
+    }
+
+    toggleBtn.addEventListener('click', openPanel);
+
+    // Ajuste inicial para móviles: Cerrado para ver mapa
+    if(window.innerWidth < 768) {
+        closePanel();
+    }
+
+    // --- LÓGICA DE DATOS ---
     function saveState() {
         const state = {
             region: document.getElementById('regionSelect').value,
@@ -309,7 +310,7 @@
         return false;
     }
 
-    // --- 1. DATA MASTER ---
+    // DATA MASTER
     const MASTER_OBRAS_LIST = [
         {id: 1, name: "Muro concreto armado, e=0.25m h=2.40m", unit: "m2", prices: {lima: 453.45, costa: 443.89, sierra: 444.14, selva: 457.72}},
         {id: 2, name: "Muro traslúcido (tipo UNI) / metálico h=2.40m", unit: "m2", prices: {lima: 417.73, costa: 408.92, sierra: 409.15, selva: 421.66}},
@@ -604,7 +605,10 @@
         
         // Mobile panel logic check
         if(window.innerWidth < 768) {
-             togglePanel(false); // Empezar cerrado en móvil para ver mapa
+            // Si el ancho es móvil, cerramos por defecto para ver mapa
+            // Pero si el usuario ya interactuó (hasSaved), quizás quiera verlo abierto.
+            // Para consistencia con "App", cerramos inicialmente.
+            closePanel();
         }
     }
 
@@ -618,9 +622,9 @@
         
         data.components.forEach(comp => {
             let html = `
-                <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
-                    <div class="text-xs font-bold text-slate-600 mb-1">${comp.label}</div>
-                    <select class="category-select w-full p-2 text-sm border rounded bg-white h-10">
+                <div class="bg-slate-50 p-2.5 border border-slate-200 rounded-lg">
+                    <div class="text-xs font-bold text-slate-600 mb-1.5">${comp.label}</div>
+                    <select class="category-select w-full p-2.5 text-sm border border-slate-200 rounded-lg bg-white h-11 focus:border-blue-500 outline-none">
                         <option value="0" data-val="0">-- Seleccionar --</option>
             `;
             
@@ -709,7 +713,7 @@
     }
 
     function calculatePredio(totalEdif) {
-        // Si no se pasa el total, obtenerlo del DOM
+        // Si no se pasa el total, obtenerlo del DOM (parseando el string formateado)
         let valEdificacion = totalEdif;
         if (typeof valEdificacion === 'undefined') {
              // Limpiar formato S/. y comas para obtener número limpio
@@ -767,7 +771,7 @@
         list.innerHTML = '';
         currentObras.forEach(o => {
             list.innerHTML += `
-                <div class="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-200 text-xs mb-1 last:mb-0 shadow-sm">
+                <div class="flex justify-between items-center bg-white p-2.5 border border-slate-200 rounded-lg text-xs mb-1.5 last:mb-0 shadow-sm">
                     <div>
                         <div class="font-bold text-slate-700 w-40 truncate" title="${o.name}">${o.name}</div>
                         <div class="text-slate-500">${o.qty} ${o.unit} x S/.${o.val.toFixed(2)}</div>
@@ -798,47 +802,10 @@
             document.getElementById('totalFinal').innerText = "S/. 0.00";
             document.getElementById('displayEdificacionAuto').innerText = "0.00";
             document.getElementById('valorPredioTotal').innerText = "S/. 0.00";
+            document.getElementById('valorUnitarioTotal').innerText = "0.00";
+            document.getElementById('deprecDisplay').innerText = "0%";
         }
     }
-
-    // --- UI TOGGLE ---
-    const toggleBtn = document.getElementById('toggleSideBtn');
-    const mobileToggleBtn = document.getElementById('mobileToggleBtn');
-    const mobileToggleIcon = document.getElementById('mobileToggleIcon'); // Icono dentro del botón
-    const mainPanel = document.getElementById('mainPanel');
-    const uiContainer = document.getElementById('uiContainer');
-    let isOpen = true;
-
-    function togglePanel(forceState) {
-        if (typeof forceState === 'boolean') isOpen = !forceState; // Invert to toggle correctly
-        
-        isOpen = !isOpen;
-        if(isOpen) {
-            mainPanel.classList.remove('panel-hidden');
-            mainPanel.classList.add('panel-visible');
-            
-            // Iconos
-            toggleBtn.querySelector('i').className = "fa-solid fa-chevron-left text-lg";
-            mobileToggleIcon.className = "fa-solid fa-chevron-left text-xs transition-transform"; // Cambia a flecha izquierda
-            
-            uiContainer.classList.remove('pointer-events-none');
-        } else {
-            mainPanel.classList.remove('panel-visible');
-            mainPanel.classList.add('panel-hidden');
-            
-            // Iconos
-            toggleBtn.querySelector('i').className = "fa-solid fa-chevron-right text-lg";
-            mobileToggleIcon.className = "fa-solid fa-chevron-right text-xs transition-transform"; // Cambia a flecha derecha
-            
-            uiContainer.classList.add('pointer-events-none');
-        }
-    }
-
-    toggleBtn.addEventListener('click', () => togglePanel());
-    mobileToggleBtn.addEventListener('click', (e) => {
-        e.stopPropagation(); // Evita clicks fantasma
-        togglePanel();
-    });
 
     // --- 4. MAPA: ESTILOS Y SELECCIÓN ---
     let selectedLayer = null;
@@ -911,7 +878,7 @@
         
         // En móvil, abrir panel para mostrar cálculo
         if(window.innerWidth < 768) {
-             togglePanel(true);
+             openPanel();
         }
     }
 
